@@ -1,117 +1,55 @@
 #include <base.hh>
 #include <environment.hh>
+#include <cmath>
 
 #include "pairing.hh"
 
 // Environment class to obtain the size of the environment
 extern mrs::Environment env;
 
-// TODO: Implement here your pairing-unpairing robot
-
 // Constructor
-PairingRobot::PairingRobot(unsigned int id, const mrs::Position2d & p, 
-                           const mrs::RobotSettings & settings,
-                           const mrs::Velocity2d & vel) :
-    mrs::Robot(id, p, settings)
+PairingRobot::PairingRobot(unsigned int id, const mrs::Position2d &p,
+                           const mrs::RobotSettings &settings,
+                           const mrs::Velocity2d &vel) : mrs::Robot(id, p, settings)
+
 {
 }
 
 // Action (main) method
-const mrs::Velocity2d & 
-PairingRobot::action(std::vector<mrs::RobotPtr> & neigh)
-{
-    float vx = 0, vy = 0;
-    static int behavior = 0; // Variable para controlar el comportamiento actual del robot
-    static int behavior_timer = 0; // Temporizador para cambiar de comportamiento
+const mrs::Velocity2d &PairingRobot::action(std::vector<mrs::RobotPtr> &neigh)
+{   m_vel = mrs::Velocity2d::Random();
+     const float closeThreshold = 4.0; // Define una distancia umbral para considerar "muy cerca"
 
-    switch (behavior) {
-        case 0: // Deambular
-            // Implementar el comportamiento de deambular aquí
-            // Puedes usar una velocidad aleatoria o un movimiento en línea recta
-            
-            // Ejemplo de movimiento  aleatorio:
-            //Color azul 
-            //if ((settings().color)[0]==0){
-            m_vel = mrs::Velocity2d::Random();
-            m_vel *= 0.8; // Escalar la velocidad a un rango máximo
+    for (auto &n : neigh)
+    {
+        // Calcula la distancia entre el robot actual y el robot vecino
+        float dist = mrs::distance(m_pos, n->position());
 
-            
-    
-            
-            break;
-
-        case 1: // Movimiento coordinado
-            // Implementar el comportamiento de movimiento coordinado aquí
-            // Puedes usar una velocidad constante y mantener una distancia con los robots emparejados
-            
-            // Ejemplo de movimiento coordinado:
-            if (!neigh.empty()) {
-                // Obtener la posición promedio de los robots vecinos emparejados
-                mrs::Position2d avgPosition;
-                for (auto& n : neigh) {
-                    if (n->id() != m_id) {
-                        avgPosition += n->position();
-                    }
-                }
-                avgPosition /= neigh.size() - 1;
-                
-                // Calcular la dirección hacia la posición promedio
-                mrs::Position2d direction = avgPosition - m_pos;
-                direction.normalize();
-                
-                // Calcular la velocidad en función de la dirección
-                m_vel = direction * 0.4; // Velocidad constante
-                
-                // Mantener una distancia constante de separación
-                float desiredDistance = 0.1; // Distancia deseada
-                float currentDistance = mrs::distance(m_pos, avgPosition);
-                if (currentDistance < desiredDistance) {
-                    // Alejarse si está demasiado cerca
-                    m_vel -= direction * 0.2;
-                } else if (currentDistance > desiredDistance) {
-                    // Acercarse si está demasiado lejos
-                    m_vel += direction * 0.2;
-                    
-                }
+        // Supongamos que el color opuesto se determina por la diferencia en la primera componente de color
+        if (settings().color[0] != n->settings().color[0]) 
+        {
+            if (dist < closeThreshold) 
+            {
+                // Si están muy cerca y tienen un color "opuesto", "pegarse"
+                m_vel = (n->position() - m_pos); // Moverse directamente hacia el otro robot
+                m_vel.normalize(); // Normaliza para controlar la velocidad a una unidad estándar
+                m_vel *= settings().vMax; // Ajustar a la velocidad máxima permitida
+                break; // Deja de revisar otros una vez que se decide "pegarse"
             }
-            
-            break;
-
-        case 2: // Repulsión
-            // Implementar el comportamiento de repulsión aquí 
-            // Puedes usar una velocidad aleatoria o alejarse de los robots vecinos
-            
-            // Ejemplo de comportamiento de repulsión:
-            for (auto& n : neigh) {
-                if (n->id() != m_id) {
-                    // Calcular la dirección de alejamiento de los robots vecinos
-                    mrs::Position2d direction = m_pos - n->position();
-                    direction.normalize();
-                    
-                    // Agregar la dirección a la velocidad
-                    m_vel = mrs::Velocity2d::Random();
-                    m_vel -= m_vel * 0.8;
-                }
-            }
-            
-            break;
+        }
     }
 
-    // Actualizar el temporizador de cambio de comportamiento
-    behavior_timer++;
-    while (behavior_timer > 10000) { // Cambiar de comportamiento cada 10 segundos
-        behavior = (behavior + 1) % 3; // Cambiar al siguiente comportamiento
-        behavior_timer = 0; // Reiniciar el temporizador
+    // Si no se encontró ningún robot cercano de color opuesto, moverse de manera aleatoria
+    if (m_vel == mrs::Velocity2d::Zero())
+    {
+        m_vel = mrs::Velocity2d::Random();
     }
-    
+
     return m_vel;
-
 }
-
 mrs::RobotPtr
 PairingRobot::clone() const
 {
     PairingRobotPtr newRobot = std::make_shared<PairingRobot>(m_id, m_pos, m_settings, m_vel);
     return std::dynamic_pointer_cast<mrs::Robot>(newRobot);
 }
-

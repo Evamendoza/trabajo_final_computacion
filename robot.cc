@@ -29,6 +29,7 @@ namespace mrs {
     
     return m_vel; // should be a zero vector in this robot class
   }
+
   
   // Deep copy of the robot class and returns a shared pointer
   RobotPtr
@@ -67,6 +68,7 @@ namespace mrs {
     // planar
     m_pos = wrap(m_pos);
   }
+
 
   // Print all the robot information on a stream
   std::ostream &
