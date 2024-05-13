@@ -1,12 +1,17 @@
 #include <iostream>
 #include <stdlib.h>
 #include <math.h>
+
 #include <gtkmm.h>
+
+
 #include <robot.hh>
 #include <swarm.hh>
 #include <environment.hh>
 #include <simulation.hh>
 #include <simulation-plot.hh>
+
+
 #include "pairing.hh"
 
 // Create an environment for the swarm
