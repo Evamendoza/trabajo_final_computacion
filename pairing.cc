@@ -30,14 +30,15 @@ const mrs::Velocity2d &PairingRobot::action(std::vector<mrs::RobotPtr> &neigh) {
     bool emparejado=false;
     
     for (auto &n : neigh) {
-        m_vel = mrs::Velocity2d::Ones();
-
+        m_vel = mrs::Velocity2d::Random();
+       
         // Calcula la distancia entre el robot actual y el robot vecino
         float dist = mrs::distance(m_pos, n->position())-minDistance;
         float angulo =mrs::angle(m_pos, n->position());
-        
 
-        if ((settings().color[0] != n->settings().color[0]) && emparejado == false) {
+
+        //Fuerza de cohesion 
+        if ((n->settings().color[0] != n->settings().color[0]) && settings().visible==true) {
             vx = dist * cos(angulo);
             vy = dist * sin(angulo);
 
@@ -45,6 +46,8 @@ const mrs::Velocity2d &PairingRobot::action(std::vector<mrs::RobotPtr> &neigh) {
 
             vx /= modVel;
             vy /= modVel;
+            m_vel = mrs::Velocity2d(vx, vy);
+            m_vel={vx+m_vel[0],vy+m_vel[1]};
         }
 
             /*if (dist < closeThreshold) {
@@ -64,26 +67,32 @@ const mrs::Velocity2d &PairingRobot::action(std::vector<mrs::RobotPtr> &neigh) {
 
                 
             }*/
-        
-        if ((dist<=0.6)&&(settings().color[0] != n->settings().color[0])){
+        //Obtener velocidad del robot
+        if ((dist<=1.0)&&(n->settings().color[0] != n->settings().color[0])&& (settings().visible==true)){
             //ux=n->velocity()[0]/2;
             //uy=n->velocity()[1]/2;
+            n->dejarVisible(false);
             std::cout<<"n vel: " << n->velocity()[0] << "," << n->velocity()[1] << std::endl;
             std::cout<<"Velocidad: " << m_vel << std::endl;
             m_vel += n->velocity();
             m_vel /= neigh.size();
-           emparejado = true;
+            
+
+
             }
 
          //repeleer 
-       else if (emparejado==true){
+        if ((!settings().visible)&&(n->settings().color[0] == n->settings().color[0])){
          vx=dist*cos(angulo);
-         vy=dist*sin(angulo);
-            
-         m_vel={vx -m_vel[0],vy-m_vel[1]};
+         vy=dist*sin(angulo);            
+         m_vel={-vx +m_vel[0],-vy+m_vel[1]};
 
-         m_vel=2.0*m_vel;
-         }}
+         m_vel=0.4*m_vel;
+         
+
+         
+         }
+        }
 
 
         //
